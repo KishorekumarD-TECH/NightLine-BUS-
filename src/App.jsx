@@ -379,18 +379,16 @@ function SeatMap({ schedule, selected, setSelected, pickup, drop, setPickup, set
         .from('seats')
         .select('id, seat_number, seat_type, deck, bus_id, gender_lock')
         .eq('bus_id', schedule.bus_id)
-      const { data: takenRows } = await supabase
-        .from('booking_seats')
-        .select('seat_id, bookings!inner(status)')
-        .eq('schedule_id', schedule.id)
-        .eq('bookings.status', 'confirmed')
+      const { data: takenRows } = await supabase.rpc('get_taken_seats', {
+        p_schedule: schedule.id,
+      })
       const routeId = schedule.route_id
       const [{ data: bp }, { data: dp }] = await Promise.all([
         supabase.from('boarding_points').select('*').eq('route_id', routeId).order('seq'),
         supabase.from('dropping_points').select('*').eq('route_id', routeId).order('seq'),
       ])
       setSeats(seatRows || [])
-      setBooked(new Set((takenRows || []).map((r) => r.seat_id)))
+      setBooked(new Set(takenRows || []))
       setBoarding(bp || [])
       setDropping(dp || [])
       if (!pickup && bp?.[0]) setPickup(bp[0])
